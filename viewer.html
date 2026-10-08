@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚔️ High-Density ASCII Knight — Animated Stances & Transitions Viewer</title>
+  <style>
+    :root {
+      --bg-dark: #0a0b0e;
+      --panel-bg: rgba(18, 20, 26, 0.90);
+      --border-color: rgba(60, 68, 86, 0.4);
+      --accent: #d9534f;
+      --accent-glow: rgba(217, 83, 79, 0.35);
+      --steel: #8a9aa7;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Header Bar */
+    header {
+      height: 56px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      z-index: 10;
+      gap: 12px;
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .title-group h1 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge {
+      background: rgba(46, 204, 113, 0.15);
+      border: 1px solid rgba(46, 204, 113, 0.4);
+      color: #2ecc71;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .controls-group {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+
+    .btn {
+      background: rgba(30, 35, 48, 0.8);
+      border: 1px solid var(--border-color);
+      color: var(--text);
+      padding: 6px 11px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: rgba(45, 52, 70, 0.9);
+      border-color: rgba(120, 135, 165, 0.6);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .btn.anim-playing {
+      background: #10ac84;
+      border-color: #1dd1a1;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(16, 172, 132, 0.4);
+    }
+
+    .btn.anatomy-active {
+      background: #0984e3;
+      border-color: #74b9ff;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(9, 132, 227, 0.4);
+    }
+
+    .btn.stance-combat {
+      background: rgba(231, 76, 60, 0.25);
+      border-color: #e74c3c;
+      color: #ff7675;
+      box-shadow: 0 0 12px rgba(231, 76, 60, 0.4);
+      animation: pulseCombat 2s infinite alternate;
+    }
+
+    .btn.stance-rest {
+      background: rgba(46, 204, 113, 0.18);
+      border-color: #2ecc71;
+      color: #2ecc71;
+      box-shadow: 0 0 10px rgba(46, 204, 113, 0.25);
+    }
+
+    .btn.stance-trans {
+      background: rgba(241, 196, 15, 0.25);
+      border-color: #f1c40f;
+      color: #f1c40f;
+      box-shadow: 0 0 12px rgba(241, 196, 15, 0.4);
+      animation: pulseTrans 0.5s infinite alternate;
+    }
+
+    @keyframes pulseCombat {
+      0% { box-shadow: 0 0 6px rgba(231, 76, 60, 0.3); }
+      100% { box-shadow: 0 0 16px rgba(231, 76, 60, 0.7); }
+    }
+
+    @keyframes pulseTrans {
+      0% { box-shadow: 0 0 4px rgba(241, 196, 15, 0.3); }
+      100% { box-shadow: 0 0 14px rgba(241, 196, 15, 0.8); }
+    }
+
+    select {
+      background: rgba(30, 35, 48, 0.8);
+      border: 1px solid var(--border-color);
+      color: var(--text);
+      padding: 6px 9px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+    }
+
+    select:focus {
+      border-color: var(--accent);
+    }
+
+    /* Main Viewport */
+    main {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      background: radial-gradient(circle at center, #11141c 0%, #08090c 100%);
+    }
+
+    main:active {
+      cursor: grabbing;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    /* Bottom Info & Inspector HUD */
+    footer {
+      height: 42px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      font-size: 12px;
+      color: var(--text-muted);
+      z-index: 10;
+    }
+
+    .inspector-panel {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .inspector-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .color-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      display: inline-block;
+    }
+
+    .anatomy-tag {
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .hud-hint {
+      color: #718096;
+      font-size: 11px;
+    }
+  </style>
+  <script src="assets/ascii/characters/knight_data.js"></script>
+</head>
+<body>
+
+  <header>
+    <div class="title-group">
+      <h1>⚔️ The Knight: <span id="stanceTitle" style="color: #2ecc71;">Rest Stance</span></h1>
+      <button class="btn stance-rest" id="btnStanceToggle" onclick="toggleStance()" title="Press Z to trigger smooth animated movement between stances">
+        🛡️ [Z] Rest Stance
+      </button>
+      <span class="badge" id="animBadge">ANIMATED (60 FPS)</span>
+    </div>
+
+    <div class="controls-group">
+      <!-- Animation Controls -->
+      <button class="btn anim-playing" id="btnAnimToggle" onclick="toggleAnimation()">⏸ Pause [Space]</button>
+      <select id="animSpeedSelect" onchange="changeAnimSpeed(this.value)">
+        <option value="0.5">0.5x Speed</option>
+        <option value="1.0" selected>1.0x Normal</option>
+        <option value="1.5">1.5x Fast</option>
+        <option value="2.0">2.0x Battle Gale</option>
+      </select>
+
+      <span style="width: 1px; height: 20px; background: var(--border-color); margin: 0 2px;"></span>
+
+      <!-- Stance / Views Direct -->
+      <button class="btn active" id="btnViewRest" onclick="switchStanceDirect('rest')">Rest Sentinel (84×116)</button>
+      <button class="btn" id="btnViewCombat" onclick="switchStanceDirect('combat')">Combat Ready (84×116)</button>
+      <button class="btn" id="btnViewFocus" onclick="switchView('character_focus')">Weary Vigil (96×80)</button>
+      <button class="btn" id="btnViewScene" onclick="switchView('scene')">Battlefield (160×80)</button>
+
+      <button class="btn" id="btnToggleAnatomy" onclick="toggleAnatomy()">Anatomy [A]: OFF</button>
+
+      <!-- Density / Font Size -->
+      <label style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Font:</label>
+      <select id="fontSizeSelect" onchange="changeFontSize(this.value)">
+        <option value="4">4px (Micro)</option>
+        <option value="5">5px (Compact)</option>
+        <option value="6" selected>6px (Crisp Default)</option>
+        <option value="8">8px (Dense)</option>
+        <option value="10">10px (Standard)</option>
+        <option value="12">12px (Macro)</option>
+      </select>
+
+      <select id="paletteSelect" onchange="changePalette(this.value)">
+        <option value="truecolor" selected>TrueColor (Oil Painting)</option>
+        <option value="steel">Grim Steel</option>
+        <option value="amber">Amber CRT</option>
+        <option value="phosphor">Emerald Phosphor</option>
+      </select>
+
+      <button class="btn" id="btnToggleBg" onclick="toggleBackground()">BG [B]: ON</button>
+      <button class="btn" onclick="resetView()">Reset [R]</button>
+      <button class="btn" onclick="exportPng()">📸 Save PNG</button>
+    </div>
+  </header>
+
+  <main id="viewport">
+    <canvas id="asciiCanvas"></canvas>
+  </main>
+
+  <footer>
+    <div class="inspector-panel" id="inspectorPanel">
+      <span class="hud-hint">Hover mouse over the animated knight to inspect cells & anatomy hitboxes...</span>
+    </div>
+    <div class="hud-hint" id="hudDescription">
+      Rest Stance (Z): Inverted Pendulum Breathing Sway (1.2 rad/s) + Planted Greatsword Pivot + Gentle Cape Ripple
+    </div>
+  </footer>
+
+  <script>
+    const data = window.KNIGHT_DATA;
+    if (!data) {
+      alert("Error: knight_data.js could not be loaded!");
+    }
+
+    let currentViewKey = "standing_sentinel";
+    let currentStance = "rest"; // "rest" or "combat"
+    let targetStance = "rest";
+    let isTransitioning = false;
+    let transitionProgress = 0.0;
+    const transitionDuration = 0.22; // snappy responsive stance transition duration
+    let swordTrail = [];
+
+    let fontSize = 6;
+    let paletteMode = "truecolor";
+    let showBg = true;
+    let showGrid = false;
+    let showAnatomy = false;
+
+    // Animation variables
+    let isAnimated = true;
+    let animSpeed = 1.0;
+    let animTime = 0.0;
+    let lastTimestamp = 0;
+
+    // Canvas & Context
+    const canvas = document.getElementById("asciiCanvas");
+    const ctx = canvas.getContext("2d");
+    const viewport = document.getElementById("viewport");
+
+    // Camera Pan / Zoom
+    let panX = 100;
+    let panY = 20;
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let origPanX = 0, origPanY = 0;
+
+    const ANATOMY_INFO = {
+      "head_helm":        { color: "#f1c40f", bg: "#4a3c03", label: "Head: Close Helm & Visor", stats: "1.75x Crit Multiplier | 75 Armor" },
+      "pauldrons":        { color: "#bdc3c7", bg: "#2c3e50", label: "Shoulders: Fluted Pauldrons", stats: "0.85x Deflect | 90 Armor" },
+      "torso_cuirass":    { color: "#00cec9", bg: "#003b39", label: "Torso: Gothic Cuirass & Ridge", stats: "0.70x Damage | 95 Armor | 80% Poise" },
+      "cape_mantle":      { color: "#e74c3c", bg: "#421010", label: "Cape: Tattered Crimson Mantle", stats: "Sine Wave Cloth Physics" },
+      "arms_gauntlets":   { color: "#e67e22", bg: "#422305", label: "Arms: Vambraces & Gauntlets", stats: "1.00x Damage | 20% Disarm Risk" },
+      "weapon_sword":     { color: "#ffffff", bg: "#2d3436", label: "Weapon: Two-Handed Greatsword", stats: "38 Base Dmg | 55 Poise Dmg | Reach 2.4" },
+      "waist_fauld":      { color: "#9b59b6", bg: "#2c0e38", label: "Waist: Fauld & Maille Skirt", stats: "1.10x Damage | 70 Armor" },
+      "legs_greaves":     { color: "#2ecc71", bg: "#073b1a", label: "Legs: Cuisses & Greaves", stats: "1.25x Damage | 30% Stagger Risk" },
+      "feet_sabatons":    { color: "#74b9ff", bg: "#0c2461", label: "Feet: Pointed Sabatons & Spurs", stats: "Ground Anchor Lames" },
+      "ground_flagstone": { color: "#636e72", bg: "#1e272e", label: "Ground: Flagstone Pavers", stats: "Stone Terrain" },
+      "background":       { color: "#2d3436", bg: "#0a0b0e", label: "Environment Atmosphere", stats: "Dark Fantasy Background" }
+    };
+
+    function getAnatomyDetails(zone) {
+      const base = ANATOMY_INFO[zone] || ANATOMY_INFO["background"];
+      if (zone === "weapon_sword") {
+        if (isTransitioning) {
+          return {
+            color: base.color,
+            bg: base.bg,
+            label: "Weapon: Sweeping Greatsword (Mid-Motion)",
+            stats: "Active Weapon Stance Transition"
+          };
+        } else if (currentStance === "combat") {
+          return {
+            color: base.color,
+            bg: base.bg,
+            label: "Weapon: Attack-Ready Greatsword (Raised Guard)",
+            stats: "38 Base Dmg | 55 Poise Dmg | Ready to Strike"
+          };
+        } else {
+          return {
+            color: base.color,
+            bg: base.bg,
+            label: "Weapon: Grounded Greatsword (Planted Rest)",
+            stats: "38 Base Dmg | 55 Poise Dmg | Ground Tip Anchor"
+          };
+        }
+      }
+      return base;
+    }
+
+    function getCurrentMatrix() {
+      if (currentViewKey === "standing_sentinel" || currentViewKey === "combat_stance") {
+        if (isTransitioning) {
+          const p = transitionProgress;
+          if (p < 0.18) return data["standing_sentinel"];
+          else if (p < 0.44) return data["trans_lift"];
+          else if (p < 0.72) return data["trans_sweep"];
+          else if (p < 0.90) return data["trans_ready"];
+          else return data["combat_stance"];
+        }
+        return (currentStance === "combat") ? data["combat_stance"] : data["standing_sentinel"];
+      }
+      return data[currentViewKey] || data["standing_sentinel"];
+    }
+
+    function toggleAnimation() {
+      isAnimated = !isAnimated;
+      const btn = document.getElementById("btnAnimToggle");
+      const badge = document.getElementById("animBadge");
+      if (isAnimated) {
+        btn.textContent = "⏸ Pause [Space]";
+        btn.classList.add("anim-playing");
+        badge.textContent = "ANIMATED (60 FPS)";
+        badge.style.color = "#2ecc71";
+      } else {
+        btn.textContent = "▶ Play [Space]";
+        btn.classList.remove("anim-playing");
+        badge.textContent = "PAUSED";
+        badge.style.color = "#f39c12";
+      }
+    }
+
+    function changeAnimSpeed(val) {
+      animSpeed = parseFloat(val);
+    }
+
+    function toggleStance() {
+      currentViewKey = "standing_sentinel";
+      targetStance = (targetStance === "rest") ? "combat" : "rest";
+      isTransitioning = true;
+      updateStanceUI();
+    }
+
+    function switchStanceDirect(stance) {
+      currentViewKey = "standing_sentinel";
+      if (stance === currentStance && !isTransitioning) return;
+      targetStance = stance;
+      isTransitioning = true;
+      updateStanceUI();
+    }
+
+    function switchView(key) {
+      isTransitioning = false;
+      currentViewKey = key;
+      updateStanceUI();
+      resetView();
+    }
+
+    function updateStanceUI() {
+      const isHero = (currentViewKey === "standing_sentinel" || currentViewKey === "combat_stance");
+      const titleSpan = document.getElementById("stanceTitle");
+      const btnStance = document.getElementById("btnStanceToggle");
+      const btnRest = document.getElementById("btnViewRest");
+      const btnCombat = document.getElementById("btnViewCombat");
+      const btnFocus = document.getElementById("btnViewFocus");
+      const btnScene = document.getElementById("btnViewScene");
+      const hudDesc = document.getElementById("hudDescription");
+
+      if (titleSpan) {
+        if (isHero) {
+          if (isTransitioning) {
+            if (targetStance === "combat") {
+              const pct = Math.round(transitionProgress * 100);
+              titleSpan.textContent = `Drawing Greatsword (${pct}%)`;
+              titleSpan.style.color = "#f1c40f";
+            } else {
+              const pct = Math.round((1 - transitionProgress) * 100);
+              titleSpan.textContent = `Sheathing to Ground (${pct}%)`;
+              titleSpan.style.color = "#74b9ff";
+            }
+          } else if (currentStance === "combat") {
+            titleSpan.textContent = "Combat Stance (Ready)";
+            titleSpan.style.color = "#ff7675";
+          } else {
+            titleSpan.textContent = "Rest Stance (Sentinel)";
+            titleSpan.style.color = "#2ecc71";
+          }
+        } else if (currentViewKey === "character_focus") {
+          titleSpan.textContent = "Weary Vigil (Camp)";
+          titleSpan.style.color = "#f1c40f";
+        } else {
+          titleSpan.textContent = "Battlefield Overlook";
+          titleSpan.style.color = "#3498db";
+        }
+      }
+
+      if (btnStance) {
+        if (isTransitioning) {
+          btnStance.innerHTML = targetStance === "combat" ? "⚔️ Drawing..." : "🛡️ Sheathing...";
+          btnStance.className = "btn stance-trans";
+        } else if (currentStance === "combat") {
+          btnStance.innerHTML = "⚔️ [Z] Combat Ready";
+          btnStance.className = "btn stance-combat";
+        } else {
+          btnStance.innerHTML = "🛡️ [Z] Rest Stance";
+          btnStance.className = "btn stance-rest";
+        }
+      }
+
+      if (btnRest) btnRest.classList.toggle("active", isHero && currentStance === "rest" && !isTransitioning);
+      if (btnCombat) btnCombat.classList.toggle("active", isHero && currentStance === "combat" && !isTransitioning);
+      if (btnFocus) btnFocus.classList.toggle("active", currentViewKey === "character_focus");
+      if (btnScene) btnScene.classList.toggle("active", currentViewKey === "scene");
+
+      if (hudDesc) {
+        if (isTransitioning) {
+          hudDesc.textContent = "Stance Transition: Physically sweeping greatsword, transferring weight between feet, and flaring cape";
+        } else if (isHero && currentStance === "combat") {
+          hudDesc.textContent = "Combat Stance (Z): Athletic Side-to-Side Battle Bob (2.8 rad/s) + Raised Sword Inertia + Accelerated Cape Flutter";
+        } else if (isHero) {
+          hudDesc.textContent = "Rest Stance (Z): Inverted Pendulum Breathing Sway (1.2 rad/s) + Planted Greatsword Pivot + Gentle Cape Ripple";
+        } else {
+          hudDesc.textContent = "Overview Scene: High-Density Monospace Character Display";
+        }
+      }
+    }
+
+    function toggleAnatomy() {
+      showAnatomy = !showAnatomy;
+      const btn = document.getElementById("btnToggleAnatomy");
+      btn.textContent = `Anatomy [A]: ${showAnatomy ? 'ON' : 'OFF'}`;
+      btn.classList.toggle("anatomy-active", showAnatomy);
+    }
+
+    function changeFontSize(val) {
+      fontSize = parseInt(val, 10);
+      resetView();
+    }
+
+    function changePalette(val) {
+      paletteMode = val;
+    }
+
+    function toggleBackground() {
+      showBg = !showBg;
+      document.getElementById("btnToggleBg").textContent = `BG [B]: ${showBg ? 'ON' : 'OFF'}`;
+    }
+
+    function resetView() {
+      const matrix = getCurrentMatrix();
+      const charWidth = Math.ceil(fontSize * 0.6);
+      const charHeight = fontSize;
+      const totalW = matrix.width * charWidth + charWidth * 8;
+      const totalH = matrix.height * charHeight + charHeight * 4;
+
+      const vpW = viewport.clientWidth;
+      const vpH = viewport.clientHeight;
+
+      panX = Math.max(20, Math.floor((vpW - totalW) / 2));
+      panY = Math.max(16, Math.floor((vpH - totalH) / 2));
+      updateCanvasPosition();
+    }
+
+    function updateCanvasPosition() {
+      canvas.style.transform = `translate(${panX}px, ${panY}px)`;
+    }
+
+    function mapColor(r, g, b) {
+      if (paletteMode === "truecolor") {
+        return `rgb(${r}, ${g}, ${b})`;
+      } else if (paletteMode === "steel") {
+        const lum = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        return `rgb(${Math.round(lum * 0.85)}, ${Math.round(lum * 0.95)}, ${Math.min(255, Math.round(lum * 1.15))})`;
+      } else if (paletteMode === "amber") {
+        const lum = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        return `rgb(${Math.min(255, Math.round(lum * 1.3))}, ${Math.round(lum * 0.75)}, ${Math.round(lum * 0.15)})`;
+      } else if (paletteMode === "phosphor") {
+        const lum = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        return `rgb(${Math.round(lum * 0.2)}, ${Math.min(255, Math.round(lum * 1.3))}, ${Math.round(lum * 0.3)})`;
+      }
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    function renderFrame(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const dt = (timestamp - lastTimestamp) / 1000.0;
+      lastTimestamp = timestamp;
+
+      // Step stance transition state machine
+      if (isTransitioning) {
+        const speed = (1.0 / transitionDuration) * animSpeed;
+        if (targetStance === "combat") {
+          transitionProgress += dt * speed;
+          if (transitionProgress >= 1.0) {
+            transitionProgress = 1.0;
+            isTransitioning = false;
+            currentStance = "combat";
+            currentViewKey = "combat_stance";
+            updateStanceUI();
+          }
+        } else {
+          transitionProgress -= dt * speed;
+          if (transitionProgress <= 0.0) {
+            transitionProgress = 0.0;
+            isTransitioning = false;
+            currentStance = "rest";
+            currentViewKey = "standing_sentinel";
+            updateStanceUI();
+          }
+        }
+        updateStanceUI();
+      }
+
+      if (isAnimated) {
+        animTime += dt * animSpeed;
+      }
+
+      const matrix = getCurrentMatrix();
+      const charWidth = Math.ceil(fontSize * 0.6);
+      const charHeight = fontSize;
+
+      const padX = charWidth * 6;
+      const padY = charHeight * 3;
+
+      const totalW = matrix.width * charWidth + padX * 2;
+      const totalH = matrix.height * charHeight + padY * 2;
+
+      if (canvas.width !== totalW || canvas.height !== totalH) {
+        canvas.width = totalW;
+        canvas.height = totalH;
+      }
+
+      ctx.clearRect(0, 0, totalW, totalH);
+
+      const hasAnatomy = matrix.rows[0] && matrix.rows[0].anatomy !== undefined;
+      const isHero = (currentViewKey === "standing_sentinel" || currentViewKey === "combat_stance");
+      const isCombat = isHero && (currentStance === "combat") && !isTransitioning;
+      const t = isAnimated ? animTime : 0.0;
+      const p = isTransitioning ? transitionProgress : (isCombat ? 1.0 : 0.0);
+
+      // Background rects
+      if (showBg) {
+        for (let y = 0; y < matrix.height; y++) {
+          const rowBg = matrix.rows[y].bg;
+          const rowAnat = hasAnatomy ? matrix.rows[y].anatomy : null;
+
+          for (let x = 0; x < matrix.width; x++) {
+            let dx = 0, dy = 0;
+            const zone = rowAnat ? rowAnat[x] : "background";
+
+            if (isHero) {
+              if (isTransitioning) {
+                // Physical swing momentum & knee dip during transition
+                const swingMomentum = Math.sin(Math.PI * p);
+                if (zone === "head_helm" || zone === "pauldrons" || zone === "torso_cuirass" || zone === "arms_gauntlets") {
+                  dx = Math.round(1.5 * swingMomentum * charWidth);
+                  dy = Math.round(1.8 * Math.sin(Math.PI * Math.min(1.0, p * 1.8)) * charHeight);
+                } else if (zone === "cape_mantle") {
+                  const capeWeight = Math.max(0.0, (y - 18) / 90.0);
+                  dx = Math.round(4.0 * capeWeight * swingMomentum * charWidth);
+                  dy = Math.round(1.0 * capeWeight * swingMomentum * charHeight);
+                }
+              } else if (isAnimated) {
+                if (isCombat) {
+                  // COMBAT STANCE: Side-to-Side Battle Bob
+                  const swayWeight = Math.max(0.0, (108 - y) / 95.0);
+                  if (zone === "cape_mantle") {
+                    const capeWeight = Math.max(0.0, (y - 18) / 90.0);
+                    const dxCells = 3.0 * capeWeight * Math.sin(0.16 * y + 4.2 * t) + 1.2 * capeWeight * Math.cos(0.09 * y + 2.5 * t);
+                    const dyCells = 0.7 * capeWeight * Math.sin(0.14 * y + 3.5 * t);
+                    dx = Math.round(dxCells * charWidth);
+                    dy = Math.round(dyCells * charHeight);
+                  } else if (zone === "weapon_sword") {
+                    const dxCells = 1.8 * Math.sin(2.8 * t - 0.35);
+                    const dyCells = 0.8 * Math.abs(Math.cos(2.8 * t));
+                    dx = Math.round(dxCells * charWidth);
+                    dy = Math.round(dyCells * charHeight);
+                  } else if (zone === "head_helm" || zone === "pauldrons" || zone === "torso_cuirass" || zone === "arms_gauntlets" || zone === "waist_fauld" || zone === "legs_greaves") {
+                    const dxCells = 1.6 * swayWeight * Math.sin(2.8 * t);
+                    const dyCells = 0.8 * swayWeight * Math.abs(Math.cos(2.8 * t));
+                    dx = Math.round(dxCells * charWidth);
+                    dy = Math.round(dyCells * charHeight);
+                  }
+                } else {
+                  // REST STANCE: Breathing Sway
+                  if (zone === "cape_mantle") {
+                    const capeWeight = Math.max(0.0, (y - 16) / 92.0);
+                    const dxCells = 2.4 * capeWeight * Math.sin(0.14 * y + 3.2 * t) + 0.8 * capeWeight * Math.cos(0.08 * y + 1.8 * t);
+                    const dyCells = 0.5 * capeWeight * Math.sin(0.10 * y + 2.5 * t);
+                    dx = Math.round(dxCells * charWidth);
+                    dy = Math.round(dyCells * charHeight);
+                  } else if (zone === "head_helm" || zone === "pauldrons" || zone === "torso_cuirass" || zone === "arms_gauntlets" || zone === "waist_fauld") {
+                    const swayWeight = Math.max(0.0, (100 - y) / 95.0);
+                    const dxCells = 1.3 * swayWeight * Math.sin(1.2 * t);
+                    const dyCells = 0.5 * Math.sin(1.2 * t);
+                    dx = Math.round(dxCells * charWidth);
+                    dy = Math.round(dyCells * charHeight);
+                  } else if (zone === "weapon_sword") {
+                    const swordWeight = Math.max(0.0, (110 - y) / 68.0);
+                    const dxCells = 1.3 * swordWeight * Math.sin(1.2 * t);
+                    const dyCells = 0.5 * swordWeight * Math.sin(1.2 * t);
+                    dx = Math.round(dxCells * charWidth);
+                    dy = Math.round(dyCells * charHeight);
+                  }
+                }
+              }
+            }
+
+            const drawX = padX + x * charWidth + dx;
+            const drawY = padY + y * charHeight + dy;
+
+            if (showAnatomy && rowAnat) {
+              const info = getAnatomyDetails(zone);
+              ctx.fillStyle = info.bg;
+            } else {
+              const [r, g, b] = rowBg[x];
+              ctx.fillStyle = mapColor(r, g, b);
+            }
+            ctx.fillRect(drawX, drawY, charWidth, charHeight);
+          }
+        }
+      }
+
+      // Glyphs
+      ctx.font = `${fontSize}px Consolas, monospace`;
+      ctx.textBaseline = "top";
+
+      for (let y = 0; y < matrix.height; y++) {
+        const row = matrix.rows[y];
+        const text = row.text;
+        const fg = row.fg;
+        const rowAnat = hasAnatomy ? row.anatomy : null;
+
+        for (let x = 0; x < matrix.width; x++) {
+          const ch = text[x];
+          if (ch === ' ') continue;
+
+          let dx = 0, dy = 0;
+          const zone = rowAnat ? rowAnat[x] : "background";
+
+          if (isHero) {
+            if (isTransitioning) {
+              const swingMomentum = Math.sin(Math.PI * p);
+              if (zone === "head_helm" || zone === "pauldrons" || zone === "torso_cuirass" || zone === "arms_gauntlets") {
+                dx = Math.round(1.5 * swingMomentum * charWidth);
+                dy = Math.round(1.8 * Math.sin(Math.PI * Math.min(1.0, p * 1.8)) * charHeight);
+              } else if (zone === "cape_mantle") {
+                const capeWeight = Math.max(0.0, (y - 18) / 90.0);
+                dx = Math.round(4.0 * capeWeight * swingMomentum * charWidth);
+                dy = Math.round(1.0 * capeWeight * swingMomentum * charHeight);
+              }
+            } else if (isAnimated) {
+              if (isCombat) {
+                const swayWeight = Math.max(0.0, (108 - y) / 95.0);
+                if (zone === "cape_mantle") {
+                  const capeWeight = Math.max(0.0, (y - 18) / 90.0);
+                  const dxCells = 3.0 * capeWeight * Math.sin(0.16 * y + 4.2 * t) + 1.2 * capeWeight * Math.cos(0.09 * y + 2.5 * t);
+                  const dyCells = 0.7 * capeWeight * Math.sin(0.14 * y + 3.5 * t);
+                  dx = Math.round(dxCells * charWidth);
+                  dy = Math.round(dyCells * charHeight);
+                } else if (zone === "weapon_sword") {
+                  const dxCells = 1.8 * Math.sin(2.8 * t - 0.35);
+                  const dyCells = 0.8 * Math.abs(Math.cos(2.8 * t));
+                  dx = Math.round(dxCells * charWidth);
+                  dy = Math.round(dyCells * charHeight);
+                } else if (zone === "head_helm" || zone === "pauldrons" || zone === "torso_cuirass" || zone === "arms_gauntlets" || zone === "waist_fauld" || zone === "legs_greaves") {
+                  const dxCells = 1.6 * swayWeight * Math.sin(2.8 * t);
+                  const dyCells = 0.8 * swayWeight * Math.abs(Math.cos(2.8 * t));
+                  dx = Math.round(dxCells * charWidth);
+                  dy = Math.round(dyCells * charHeight);
+                }
+              } else {
+                if (zone === "cape_mantle") {
+                  const capeWeight = Math.max(0.0, (y - 16) / 92.0);
+                  const dxCells = 2.4 * capeWeight * Math.sin(0.14 * y + 3.2 * t) + 0.8 * capeWeight * Math.cos(0.08 * y + 1.8 * t);
+                  const dyCells = 0.5 * capeWeight * Math.sin(0.10 * y + 2.5 * t);
+                  dx = Math.round(dxCells * charWidth);
+                  dy = Math.round(dyCells * charHeight);
+                } else if (zone === "head_helm" || zone === "pauldrons" || zone === "torso_cuirass" || zone === "arms_gauntlets" || zone === "waist_fauld") {
+                  const swayWeight = Math.max(0.0, (100 - y) / 95.0);
+                  const dxCells = 1.3 * swayWeight * Math.sin(1.2 * t);
+                  const dyCells = 0.5 * Math.sin(1.2 * t);
+                  dx = Math.round(dxCells * charWidth);
+                  dy = Math.round(dyCells * charHeight);
+                } else if (zone === "weapon_sword") {
+                  const swordWeight = Math.max(0.0, (110 - y) / 68.0);
+                  const dxCells = 1.3 * swordWeight * Math.sin(1.2 * t);
+                  const dyCells = 0.5 * swordWeight * Math.sin(1.2 * t);
+                  dx = Math.round(dxCells * charWidth);
+                  dy = Math.round(dyCells * charHeight);
+                }
+              }
+            }
+          }
+
+          const drawX = padX + x * charWidth + dx;
+          const drawY = padY + y * charHeight + dy;
+
+          if (showAnatomy && rowAnat) {
+            const info = getAnatomyDetails(zone);
+            ctx.fillStyle = info.color;
+          } else {
+            let [r, g, b] = fg[x];
+            if (isHero && isAnimated && zone === "cape_mantle") {
+              const freq = (isCombat || isTransitioning) ? 4.2 : 3.2;
+              const shimmer = Math.round(18 * Math.sin(0.14 * y + freq * t));
+              r = Math.min(255, Math.max(0, r + shimmer));
+            } else if (isHero && isTransitioning && zone === "weapon_sword") {
+              r = Math.min(255, r + 30);
+              g = Math.min(255, g + 30);
+              b = Math.min(255, b + 30);
+            }
+            ctx.fillStyle = mapColor(r, g, b);
+          }
+          ctx.fillText(ch, drawX, drawY);
+        }
+      }
+
+      // Draw dynamic sword motion streak during transition
+      if (isHero && isTransitioning && p >= 0.15 && p <= 0.88) {
+        const tipX = Math.round(42 + 31 * p);
+        const tipY = Math.round(102 - 86 * p + 14 * Math.sin(Math.PI * p));
+        swordTrail.push({ x: tipX, y: tipY });
+        if (swordTrail.length > 5) swordTrail.shift();
+
+        for (let i = 0; i < swordTrail.length; i++) {
+          const pt = swordTrail[i];
+          const tx = padX + pt.x * charWidth;
+          const ty = padY + pt.y * charHeight;
+          const alpha = (i + 1) / swordTrail.length;
+          ctx.fillStyle = `rgba(180, 220, 255, ${alpha * 0.85})`;
+          ctx.font = `${fontSize}px Consolas, monospace`;
+          ctx.fillText(p > 0.4 ? "/" : "|", tx, ty);
+        }
+      } else if (!isTransitioning && swordTrail.length > 0) {
+        swordTrail = [];
+      }
+
+      requestAnimationFrame(renderFrame);
+    }
+
+    // Keyboard Shortcuts
+    window.addEventListener("keydown", (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+      if (e.key === 'z' || e.key === 'Z') {
+        toggleStance();
+      } else if (e.code === 'Space') {
+        e.preventDefault();
+        toggleAnimation();
+      } else if (e.key === 'a' || e.key === 'A') {
+        toggleAnatomy();
+      } else if (e.key === 'b' || e.key === 'B') {
+        toggleBackground();
+      } else if (e.key === 'r' || e.key === 'R') {
+        resetView();
+      } else if (e.key === '1') {
+        switchStanceDirect('rest');
+      } else if (e.key === '2') {
+        switchStanceDirect('combat');
+      } else if (e.key === '3') {
+        switchView('character_focus');
+      } else if (e.key === '4') {
+        switchView('scene');
+      } else if (e.key === '[' || e.key === '{') {
+        const sel = document.getElementById("animSpeedSelect");
+        if (sel.selectedIndex > 0) {
+          sel.selectedIndex--;
+          changeAnimSpeed(sel.value);
+        }
+      } else if (e.key === ']' || e.key === '}') {
+        const sel = document.getElementById("animSpeedSelect");
+        if (sel.selectedIndex < sel.options.length - 1) {
+          sel.selectedIndex++;
+          changeAnimSpeed(sel.value);
+        }
+      }
+    });
+
+    // Panning Listeners
+    viewport.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      origPanX = panX;
+      origPanY = panY;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (isDragging) {
+        panX = origPanX + (e.clientX - startX);
+        panY = origPanY + (e.clientY - startY);
+        updateCanvasPosition();
+      }
+
+      // Hover Inspector
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const matrix = getCurrentMatrix();
+      const charWidth = Math.ceil(fontSize * 0.6);
+      const charHeight = fontSize;
+      const padX = charWidth * 6;
+      const padY = charHeight * 3;
+
+      const relX = mouseX - padX;
+      const relY = mouseY - padY;
+
+      if (relX >= 0 && relX < matrix.width * charWidth && relY >= 0 && relY < matrix.height * charHeight) {
+        const cellX = Math.floor(relX / charWidth);
+        const cellY = Math.floor(relY / charHeight);
+
+        if (cellY < matrix.height && cellX < matrix.width) {
+          const ch = matrix.rows[cellY].text[cellX];
+          const [fgR, fgG, fgB] = matrix.rows[cellY].fg[cellX];
+          const [bgR, bgG, bgB] = matrix.rows[cellY].bg[cellX];
+
+          let anatomySnippet = "";
+          if (matrix.rows[cellY].anatomy) {
+            const zone = matrix.rows[cellY].anatomy[cellX];
+            const info = getAnatomyDetails(zone);
+            anatomySnippet = `
+              <div class="inspector-item">
+                <span class="anatomy-tag" style="background:${info.color}; color:#000;">${info.label}</span>
+                <span style="color:#a4b0be; font-size:11px;">${info.stats}</span>
+              </div>
+            `;
+          }
+
+          document.getElementById("inspectorPanel").innerHTML = `
+            <div class="inspector-item">
+              <span style="color:#fff; font-weight:700;">Cell:</span> (${cellX}, ${cellY})
+            </div>
+            <div class="inspector-item">
+              <span style="color:#fff; font-weight:700;">Glyph:</span>
+              <code style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:3px;">${ch === ' ' ? 'SPACE' : ch}</code>
+            </div>
+            <div class="inspector-item">
+              <span class="color-swatch" style="background: rgb(${fgR},${fgG},${fgB});"></span>
+              FG: (${fgR}, ${fgG}, ${fgB})
+            </div>
+            ${anatomySnippet}
+          `;
+          return;
+        }
+      }
+    });
+
+    window.addEventListener("mouseup", () => {
+      isDragging = false;
+    });
+
+    // Zoom on wheel
+    viewport.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const select = document.getElementById("fontSizeSelect");
+      let idx = select.selectedIndex;
+      if (e.deltaY < 0 && idx < select.options.length - 1) {
+        select.selectedIndex = idx + 1;
+        changeFontSize(select.value);
+      } else if (e.deltaY > 0 && idx > 0) {
+        select.selectedIndex = idx - 1;
+        changeFontSize(select.value);
+      }
+    });
+
+    function exportPng() {
+      const link = document.createElement("a");
+      link.download = `knight_ascii_${currentViewKey}_${fontSize}px.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    window.addEventListener("resize", () => {
+      resetView();
+    });
+
+    // Init and Start Render Loop
+    window.addEventListener("DOMContentLoaded", () => {
+      updateStanceUI();
+      resetView();
+      requestAnimationFrame(renderFrame);
+    });
+  </script>
+</body>
+</html>

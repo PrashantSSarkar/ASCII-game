@@ -1,0 +1,288 @@
+{
+  "id": "the_knight_standing_sentinel",
+  "name": "The Standing Sentinel",
+  "archetype": "gothic_vanguard_sentinel",
+  "source_artwork": "assets/knight_standing_reference.jpg",
+  "description": "Battle-hardened medieval knight standing in an imposing sentinel pose with a two-handed greatsword planted into stone, draped in a tattered crimson mantle over worn gothic steel plate.",
+  "grid": {
+    "columns": 84,
+    "rows": 116,
+    "total_cells": 9744,
+    "aspect_ratio": "1:2",
+    "recommended_font_size": "6px - 8px"
+  },
+  "anatomy_sub_blocks": {
+    "head_helm": {
+      "name": "Gothic Close Helm & Visor",
+      "row_range": [5, 20],
+      "col_range": [32, 52],
+      "z_index": 30,
+      "components": [
+        "Fluted skull ridge",
+        "Narrow horizontal ocular visor slit",
+        "Breathing perforations & chin bevor",
+        "Articulated gorget collar"
+      ],
+      "combat_hit_zone": {
+        "multiplier": 1.75,
+        "stagger_chance": 0.45,
+        "armor_rating": 75
+      },
+      "animation": {
+        "type": "breathing_bob",
+        "formula": "delta_y = round(sin(time * 1.4) * 0.5)"
+      }
+    },
+    "pauldrons_shoulders": {
+      "name": "Asymmetrical Fluted Pauldrons",
+      "row_range": [18, 40],
+      "col_range": [14, 70],
+      "z_index": 28,
+      "components": [
+        "Tiered overlapping shoulder lames",
+        "Vertical neck deflector haute-pieces",
+        "Specular rim edge glints"
+      ],
+      "combat_hit_zone": {
+        "multiplier": 0.85,
+        "deflect_chance": 0.35,
+        "armor_rating": 90
+      }
+    },
+    "torso_cuirass": {
+      "name": "Gothic Curvature Breastplate",
+      "row_range": [20, 48],
+      "col_range": [28, 56],
+      "z_index": 25,
+      "components": [
+        "Prominent vertical central keel/ridge",
+        "Hammered steel surface gouges & pits",
+        "Cinched leather waist belts & buckles"
+      ],
+      "combat_hit_zone": {
+        "multiplier": 0.70,
+        "armor_rating": 95,
+        "stagger_resistance": 0.80
+      }
+    },
+    "cape_mantle": {
+      "name": "Tattered Crimson Cloak",
+      "row_range": [16, 110],
+      "col_range": [6, 78],
+      "z_index": 10,
+      "components": [
+        "Right clavicle bronze medallion clasp",
+        "Heavy woolen cloth cascading behind back",
+        "Deep rippling folds on both flanks",
+        "Frayed, battle-torn hem touching stone"
+      ],
+      "animation": {
+        "type": "cloth_sine_wave",
+        "amplitude": 1.4,
+        "omega": 0.22,
+        "phi": 2.1,
+        "formula": "dx = round(A * sin(omega * y + phi * t))"
+      }
+    },
+    "arms_gauntlets": {
+      "name": "Articulated Arm Harness & Gauntlets",
+      "row_range": [38, 60],
+      "col_range": [24, 60],
+      "z_index": 32,
+      "components": [
+        "Tubular steel rerebraces",
+        "Winged pointed elbow couters",
+        "Laminated tubular vambraces",
+        "Hourglass gauntlets clasped over sword hilt"
+      ],
+      "combat_hit_zone": {
+        "multiplier": 1.00,
+        "disarm_chance": 0.20,
+        "armor_rating": 80
+      }
+    },
+    "weapon_greatsword": {
+      "name": "Grounded Two-Handed Greatsword",
+      "row_range": [42, 112],
+      "col_range": [38, 46],
+      "z_index": 35,
+      "components": [
+        "Polished steel wheel pommel",
+        "Spiral-wrapped oiled leather grip",
+        "Cruciform downward-angled crossguard",
+        "Straight double-edged blade with deep central fuller",
+        "Puncture tip touching flagstones"
+      ],
+      "combat_weapon_stats": {
+        "type": "two_handed_slashing_thrusting",
+        "reach_units": 2.4,
+        "base_damage": 38,
+        "poise_damage": 55,
+        "stamina_cost": 30,
+        "parry_window_ms": 220
+      }
+    },
+    "waist_fauld_maille": {
+      "name": "Fauld & Maille Skirt",
+      "row_range": [46, 68],
+      "col_range": [28, 56],
+      "z_index": 22,
+      "components": [
+        "Horizontal laminated fauld lames",
+        "Segmented articulated tassets",
+        "Peeking riveted chainmail hauberk underlay"
+      ],
+      "combat_hit_zone": {
+        "multiplier": 1.10,
+        "armor_rating": 70
+      }
+    },
+    "legs_greaves": {
+      "name": "Cuisses, Poleyns & Greaves",
+      "row_range": [62, 104],
+      "col_range": [22, 62],
+      "z_index": 20,
+      "components": [
+        "Plate cuisses protecting thighs",
+        "Winged knee poleyns with articulation lames",
+        "Anatomically contoured curved steel greaves"
+      ],
+      "combat_hit_zone": {
+        "multiplier": 1.25,
+        "knockdown_chance": 0.30,
+        "armor_rating": 85
+      }
+    },
+    "feet_sabatons": {
+      "name": "Pointed Gothic Sabatons",
+      "row_range": [102, 115],
+      "col_range": [20, 64],
+      "z_index": 18,
+      "components": [
+        "Pointed overlapping toe lames",
+        "Heel spurs with buckled leather straps",
+        "Firm plant on weathered flagstone pavers"
+      ],
+      "ground_anchored": true
+    }
+  },
+  "palette": {
+    "crimson_cape_highlight": { "hex": "#FF5252", "rgb": [255, 82, 82] },
+    "crimson_cape_mid": { "hex": "#D63031", "rgb": [214, 48, 49] },
+    "crimson_cape_shadow": { "hex": "#4A1010", "rgb": [74, 16, 16] },
+    "steel_polished_rim": { "hex": "#E2E8F0", "rgb": [226, 232, 240] },
+    "steel_midtone_plate": { "hex": "#8A9AA7", "rgb": [138, 154, 167] },
+    "steel_deep_shadow": { "hex": "#1E293B", "rgb": [30, 41, 59] },
+    "chainmail_mesh": { "hex": "#64748B", "rgb": [100, 116, 139] },
+    "bronze_clasp": { "hex": "#D4AF37", "rgb": [212, 175, 55] },
+    "blade_core": { "hex": "#F8FAFC", "rgb": [248, 250, 252] },
+    "leather_grip": { "hex": "#5B3A29", "rgb": [91, 58, 41] },
+    "flagstone_rock": { "hex": "#475569", "rgb": [71, 85, 105] }
+  },
+  "animations": {
+    "idle_standing": {
+      "name": "Sentinel Standing Vigil",
+      "type": "procedural_harmonic",
+      "frame_rate": 60,
+      "cycle_duration_sec": 5.24,
+      "components": {
+        "character_sway": {
+          "description": "Inverted pendulum breathing sway from anchored ankles to helmet crown",
+          "target_sub_blocks": ["head_helm", "pauldrons", "torso_cuirass", "arms_gauntlets", "waist_fauld"],
+          "amplitude_cells": 1.3,
+          "frequency_rad": 1.2,
+          "breathing_bob_cells": 0.5,
+          "pivot_anchor_y": 100,
+          "formula_x": "dx = round(A * max(0.0, (100 - y) / 95.0) * sin(1.2 * t))",
+          "formula_y": "dy = round(0.5 * sin(1.2 * t))"
+        },
+        "cape_wind_wave": {
+          "description": "Organic multi-frequency sine wave cloth ripple anchored at shoulder clasps with hem flare",
+          "target_sub_blocks": ["cape_mantle"],
+          "shoulder_anchor_y": 16,
+          "primary_wave": { "amplitude_cells": 2.4, "omega": 0.14, "phi": 3.2 },
+          "secondary_wave": { "amplitude_cells": 0.8, "omega": 0.08, "phi": 1.8 },
+          "cloth_shimmer": { "enabled": true, "amplitude": 16, "frequency": 3.2 },
+          "formula_x": "dx = round(cape_weight * (2.4 * sin(0.14 * y + 3.2 * t) + 0.8 * cos(0.08 * y + 1.8 * t)))",
+          "formula_y": "dy = round(cape_weight * 0.5 * sin(0.10 * y + 2.5 * t))"
+        },
+        "weapon_greatsword_pivot": {
+          "description": "Two-handed sword pivot tracking swaying gauntlets while tip remains grounded",
+          "target_sub_blocks": ["weapon_sword"],
+          "grounded_tip_y": 110,
+          "formula_x": "dx = round(1.3 * max(0.0, (110 - y) / 68.0) * sin(1.2 * t))",
+          "formula_y": "dy = round(0.5 * max(0.0, (110 - y) / 68.0) * sin(1.2 * t))"
+        }
+      }
+    },
+    "combat_idle_bob": {
+      "name": "Combat Ready Battle Bounce",
+      "type": "procedural_combat_harmonic",
+      "frame_rate": 60,
+      "cycle_duration_sec": 2.24,
+      "stance_key": "Z",
+      "components": {
+        "side_to_side_bob": {
+          "description": "Spring-loaded athletic weight shift between lead and rear leg with knee dip",
+          "target_sub_blocks": ["head_helm", "pauldrons", "torso_cuirass", "arms_gauntlets", "waist_fauld", "legs_greaves"],
+          "sway_amplitude_cells": 1.6,
+          "vertical_dip_cells": 0.8,
+          "cadence_freq_rad": 2.8,
+          "formula_x": "dx = round(1.6 * max(0.0, (108 - y) / 95.0) * sin(2.8 * t))",
+          "formula_y": "dy = round(0.8 * abs(cos(2.8 * t)))"
+        },
+        "raised_sword_inertia": {
+          "description": "Dynamic sword tension tracking hands with inertia phase lag",
+          "target_sub_blocks": ["weapon_sword"],
+          "formula_x": "dx = round(1.6 * sin(2.8 * t - 0.35))",
+          "formula_y": "dy = round(0.8 * abs(cos(2.8 * t)))"
+        },
+        "combat_cape_flutter": {
+          "description": "Accelerated gale-force cape flutter flowing backward",
+          "target_sub_blocks": ["cape_mantle"],
+          "formula_x": "dx = round(cape_weight * (3.0 * sin(0.16 * y + 4.2 * t) + 1.2 * cos(0.09 * y + 2.5 * t)))",
+          "formula_y": "dy = round(cape_weight * 0.7 * sin(0.14 * y + 3.5 * t))"
+        }
+      }
+    }
+  },
+  "stance_controls": {
+    "toggle_key": "Z",
+    "default_stance": "rest_sentinel",
+    "stances": {
+      "rest_sentinel": {
+        "matrix_key": "standing_sentinel",
+        "animation": "idle_standing",
+        "description": "Rest Stance: Grounded sentinel with planted greatsword, calm breathing sway"
+      },
+      "combat_ready": {
+        "matrix_key": "combat_stance",
+        "animation": "combat_idle_bob",
+        "description": "Combat Stance: Diagonal raised greatsword ready to strike, athletic side-to-side bob"
+      }
+    },
+    "transition": {
+      "name": "Draw & Sheathe Weapon Movement",
+      "duration_sec": 0.22,
+      "reversible": true,
+      "keyframes": [
+        { "phase": 0.00, "matrix_key": "standing_sentinel", "description": "Rest Sentinel: blade grounded between feet" },
+        { "phase": 0.25, "matrix_key": "trans_lift", "description": "Lift Initiation: tip lifts off stone, blade tilts 78 deg, knees flex" },
+        { "phase": 0.50, "matrix_key": "trans_sweep", "description": "Mid-Torso Sweep: blade sweeps horizontally across chest, legs widen, cape flares" },
+        { "phase": 0.75, "matrix_key": "trans_ready", "description": "High Hoist: blade elevated to 45 deg, feet landing in wide athletic base" },
+        { "phase": 1.00, "matrix_key": "combat_stance", "description": "Combat Ready: active diagonal attack guard and battle bob" }
+      ],
+      "kinematics": {
+        "knee_dip_cells": 1.8,
+        "swing_momentum_cells": 1.5,
+        "cape_wind_burst_cells": 4.0,
+        "motion_trail": {
+          "enabled": true,
+          "trail_length": 5,
+          "color": [180, 220, 255]
+        }
+      }
+    }
+  },
+  "matrix_data_source": "assets/ascii/characters/knight_high_density.json"
+}
