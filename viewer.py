@@ -134,6 +134,11 @@ class AsciiViewer:
         self.hud_warning = ""            # Feedback warning string (e.g. Combat Stance required)
         self.hud_warning_timer = 0.0     # Time remaining for HUD warning banner
         
+        # Running Animation State ([D] / [R])
+        self.is_running = False
+        self.run_progress = 0.0
+        self.run_duration = 1.35
+        
         # Other views (Vigil, Scene, Draft 1)
         self.current_view_idx = 0
         
@@ -225,6 +230,22 @@ class AsciiViewer:
                         return HIGH_DENSITY_DATA.get("attack_recovery", HIGH_DENSITY_DATA["combat_stance"])
                     else:
                         return HIGH_DENSITY_DATA["combat_stance"]
+            elif self.is_running:
+                p = self.run_progress
+                if p < 0.12:
+                    return HIGH_DENSITY_DATA.get("run_trans_start", HIGH_DENSITY_DATA["combat_stance"])
+                elif p < 0.28:
+                    return HIGH_DENSITY_DATA.get("run_stride_1", HIGH_DENSITY_DATA["combat_stance"])
+                elif p < 0.44:
+                    return HIGH_DENSITY_DATA.get("run_stride_2", HIGH_DENSITY_DATA["combat_stance"])
+                elif p < 0.60:
+                    return HIGH_DENSITY_DATA.get("run_stride_3", HIGH_DENSITY_DATA["combat_stance"])
+                elif p < 0.76:
+                    return HIGH_DENSITY_DATA.get("run_stride_4", HIGH_DENSITY_DATA["combat_stance"])
+                elif p < 0.90:
+                    return HIGH_DENSITY_DATA.get("run_skid_stop", HIGH_DENSITY_DATA["combat_stance"])
+                else:
+                    return HIGH_DENSITY_DATA.get("run_recover_stance", HIGH_DENSITY_DATA["combat_stance"])
             else:
                 if self.stance == "combat":
                     return HIGH_DENSITY_DATA["combat_stance"]
@@ -279,21 +300,21 @@ class AsciiViewer:
                 b_dy = 1.0
                 leg_dx = 8.0 * strike_f
                 arm_dx = 6.0 * strike_f
-                c_dx = 12.0 * math.sin(st * math.pi)
+                c_dx = -4.0 * math.sin(st * math.pi)
             elif ap < 0.65:
                 # Impact hold / follow-through (Faster middle frame)
                 b_dx = 2.0
                 b_dy = 1.0
                 leg_dx = 8.0
                 arm_dx = 6.0
-                c_dx = 10.0
+                c_dx = -4.0
             elif ap < 0.83:
                 # Step 2 Unwind Front: Torso unwinds back facing viewer, legs switched (good speed)
                 b_dx = 1.0
                 b_dy = 1.0
                 leg_dx = 4.0
                 arm_dx = 3.0
-                c_dx = 3.0
+                c_dx = -1.0
             else:
                 # Step 2 Return: Left leg steps forward around, squaring to neutral (good speed)
                 rt = (ap - 0.83) / 0.17
@@ -302,7 +323,7 @@ class AsciiViewer:
                 b_dy = 1.0 * decay
                 leg_dx = 3.0 * decay
                 arm_dx = 2.0 * decay
-                c_dx = 2.0 * decay
+                c_dx = -1.0 * decay
 
             if zone in ("head_helm", "pauldrons", "torso_cuirass"):
                 return int(round(b_dx * char_w)), int(round(b_dy * char_h))
@@ -660,6 +681,27 @@ class AsciiViewer:
         self.attack_slash_trail = []
         self.dirty_surface = True
 
+    def trigger_run(self):
+        # Triggers running animation sequence from attack stance across stone pavers
+        if self.current_view_idx != 0:
+            self.current_view_idx = 0
+            self.dirty_surface = True
+            
+        if self.is_transitioning:
+            self.is_transitioning = False
+
+        if self.stance != "combat":
+            self.stance = "combat"
+            self.target_stance = "combat"
+            self.dirty_surface = True
+
+        if self.is_attacking or self.is_running:
+            return  # Already executing motion
+
+        self.is_running = True
+        self.run_progress = 0.0
+        self.dirty_surface = True
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -677,6 +719,8 @@ class AsciiViewer:
                     self.trigger_attack("cleave")
                 elif event.key in (pygame.K_x, pygame.K_s):
                     self.trigger_attack("heavy")
+                elif event.key in (pygame.K_d, pygame.K_RIGHT):
+                    self.trigger_run()
                 elif event.key == pygame.K_h:
                     self.show_anatomy = not self.show_anatomy
                     self.dirty_surface = True
@@ -834,6 +878,24 @@ class AsciiViewer:
                     else:
                         stance_badge = f"[LIGHT: RECOVERY RETURN {pct}%]"
                         badge_col = (116, 185, 255)
+            elif self.is_running:
+                pct = int(self.run_progress * 100)
+                if self.run_progress < 0.12:
+                    phase_str = "1. Sprint Initiation Lean"
+                elif self.run_progress < 0.28:
+                    phase_str = "2. Stride 1 (Right Contact)"
+                elif self.run_progress < 0.44:
+                    phase_str = "3. Stride 2 (Left Knee Drive)"
+                elif self.run_progress < 0.60:
+                    phase_str = "4. Stride 3 (Left Contact)"
+                elif self.run_progress < 0.76:
+                    phase_str = "5. Stride 4 (Right Knee Drive)"
+                elif self.run_progress < 0.90:
+                    phase_str = "6. Braking Skid & Halt"
+                else:
+                    phase_str = "7. Return to Active Stance"
+                stance_badge = f"[RUNNING: {phase_str} {pct}%]"
+                badge_col = (46, 213, 115)
             elif self.is_transitioning:
                 if self.target_stance == "combat":
                     pct = int(self.transition_progress * 100)
@@ -844,10 +906,10 @@ class AsciiViewer:
                     stance_badge = f"[GROUNDING WEAPON: {pct}%]"
                     badge_col = (116, 185, 255)
             elif self.stance == "combat":
-                stance_badge = "[COMBAT READY — [A] Light | [X/S] Heavy (2-Step) | [5-0] Mockups]"
+                stance_badge = "[COMBAT READY — [A] Light | [X/S] Heavy | [D] Run | [5-0] Mockups]"
                 badge_col = (255, 85, 85)
             else:
-                stance_badge = "[REST SENTINEL — Press [Z] for Combat]"
+                stance_badge = "[REST SENTINEL — Press [Z] for Combat | [D] Run]"
                 badge_col = (46, 204, 113)
             view_title = f"The Knight {stance_badge}"
         else:
@@ -871,7 +933,7 @@ class AsciiViewer:
         
         anatomy_status = "ON" if self.show_anatomy else "OFF"
         fps = int(self.clock.get_fps())
-        meta_txt = f"{fps} FPS | Font: {f_size}px ({cw}x{ch}) | [A] Light | [X/S] Heavy (2-Step) | [5-0] Mockups | [Z] Stance"
+        meta_txt = f"{fps} FPS | Font: {f_size}px ({cw}x{ch}) | [A] Light | [X/S] Heavy | [D] Run | [Z] Stance"
         meta_surf = self.small_ui_font.render(meta_txt, True, (160, 175, 195))
         self.screen.blit(meta_surf, (self.win_width - meta_surf.get_width() - 16, 15))
         
@@ -900,7 +962,7 @@ class AsciiViewer:
             info_surf = self.small_ui_font.render(info_txt, True, (220, 230, 245))
             self.screen.blit(info_surf, (40, bar_y + 9))
         else:
-            hint_txt = "Press [A] for Heavy Greatsword Slash (Combat Only) | [Z] Stance Switch | [H] Anatomy | [SPACE] Pause | Drag to Pan"
+            hint_txt = "Press [A] Light Cleave | [X/S] Heavy Attack | [D] Sprint & Run | [Z] Stance Switch | [SPACE] Pause | Drag to Pan"
             hint_surf = self.small_ui_font.render(hint_txt, True, (120, 130, 145))
             self.screen.blit(hint_surf, (16, bar_y + 9))
 
@@ -935,6 +997,15 @@ class AsciiViewer:
                     self.attack_progress = 1.0
                     self.is_attacking = False
                     self.attack_slash_trail = []
+                self.dirty_surface = True
+
+            # Step running animation state machine
+            if self.is_running:
+                run_speed = (1.0 / self.run_duration) * self.anim_speed
+                self.run_progress += dt * run_speed
+                if self.run_progress >= 1.0:
+                    self.run_progress = 1.0
+                    self.is_running = False
                 self.dirty_surface = True
 
             # Tick warning banner

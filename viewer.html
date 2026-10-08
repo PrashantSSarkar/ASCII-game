@@ -332,6 +332,9 @@
       <button class="btn attack-locked" id="btnAttack2" onclick="triggerAttack('heavy')" title="Press [S] for 2-Step Heavy Attack">
         🔨 [S] Heavy Attack (2-Step)
       </button>
+      <button class="btn" id="btnRun" onclick="triggerRun()" title="Press [D] to Sprint & Run" style="border-color: #2ed573; color: #2ed573;">
+        🏃 [D] Sprint & Run
+      </button>
       <span class="badge" id="animBadge">ANIMATED (60 FPS)</span>
     </div>
 
@@ -353,14 +356,25 @@
       
       <!-- Mockup Inspection Dropdown -->
       <select id="mockupFrameSelect" onchange="switchView(this.value)" style="background: rgba(45, 32, 16, 0.9); border: 1.5px solid #f39c12; color: #f1c40f; font-weight: 700;">
-        <option value="" disabled selected>🔍 Heavy Mockup Frames...</option>
-        <option value="combat_stance">Base: Combat Stance (Ready)</option>
-        <option value="heavy_step1_windup">Mockup 1: Right Leg Step & Chamber</option>
-        <option value="heavy_step1_planted_front">Mockup 2: Planted Stride (Torso Front, Legs Switched)</option>
-        <option value="heavy_step1_strike">Mockup 3: Back-Turned Forward Strike (x=109)</option>
-        <option value="heavy_step1_followthrough">Mockup 4: Impact Hold / Follow-Through</option>
-        <option value="heavy_step2_unwind_front">Mockup 5: Torso Unwind (Second to Last)</option>
-        <option value="heavy_step2_return">Mockup 6: Left Leg Step & Return</option>
+        <option value="" disabled selected>🔍 Inspect Keyframes...</option>
+        <optgroup label="🔨 Heavy 2-Step Attack">
+          <option value="combat_stance">Base: Combat Stance (Ready)</option>
+          <option value="heavy_step1_windup">Mockup 1: Right Leg Step & Chamber</option>
+          <option value="heavy_step1_planted_front">Mockup 2: Planted Stride (Torso Front, Legs Switched)</option>
+          <option value="heavy_step1_strike">Mockup 3: Back-Turned Forward Strike (x=109)</option>
+          <option value="heavy_step1_followthrough">Mockup 4: Impact Hold / Follow-Through</option>
+          <option value="heavy_step2_unwind_front">Mockup 5: Torso Unwind (Second to Last)</option>
+          <option value="heavy_step2_return">Mockup 6: Left Leg Step & Return</option>
+        </optgroup>
+        <optgroup label="🏃 Running Motion (Concept Art)">
+          <option value="run_trans_start">Run 1: Sprint Initiation Lean</option>
+          <option value="run_stride_1">Run 2: Stride 1 (Right Contact)</option>
+          <option value="run_stride_2">Run 3: Stride 2 (Left Knee Drive)</option>
+          <option value="run_stride_3">Run 4: Stride 3 (Left Contact)</option>
+          <option value="run_stride_4">Run 5: Stride 4 (Right Knee Drive)</option>
+          <option value="run_skid_stop">Run 6: Braking Skid & Halt</option>
+          <option value="run_recover_stance">Run 7: Return to Active Stance</option>
+        </optgroup>
       </select>
 
       <button class="btn" id="btnViewFocus" onclick="switchView('character_focus')">Weary Vigil (96×80)</button>
@@ -406,7 +420,7 @@
   </footer>
 
   <script>
-    const data = window.KNIGHT_DATA;
+    const data = window.KNIGHT_DATA || (typeof HIGH_DENSITY_DATA !== 'undefined' ? HIGH_DENSITY_DATA : null);
     if (!data) {
       alert("Error: knight_data.js could not be loaded!");
     }
@@ -426,6 +440,11 @@
     let attackDuration = 0.58;
     let attackSlashTrail = [];
     let warningTimeout = null;
+
+    // Running State Machine ([D] / [R])
+    let isRunning = false;
+    let runProgress = 0.0;
+    const runDuration = 1.35;
 
     let fontSize = 6;
     let paletteMode = "truecolor";
@@ -504,6 +523,24 @@
       isAttacking = true;
       attackProgress = 0.0;
       attackSlashTrail = [];
+      updateStanceUI();
+    }
+
+    function triggerRun() {
+      if (currentStance !== "combat") {
+        currentStance = "combat";
+        targetStance = "combat";
+        currentViewKey = "combat_stance";
+        isTransitioning = false;
+        updateStanceUI();
+      }
+
+      if (isAttacking || isRunning) {
+        return;
+      }
+
+      isRunning = true;
+      runProgress = 0.0;
       updateStanceUI();
     }
 
@@ -624,6 +661,16 @@
             else return data["combat_stance"];
           }
         }
+        if (isRunning) {
+          const p = runProgress;
+          if (p < 0.12) return data["run_trans_start"] || data["combat_stance"];
+          else if (p < 0.28) return data["run_stride_1"] || data["combat_stance"];
+          else if (p < 0.44) return data["run_stride_2"] || data["combat_stance"];
+          else if (p < 0.60) return data["run_stride_3"] || data["combat_stance"];
+          else if (p < 0.76) return data["run_stride_4"] || data["combat_stance"];
+          else if (p < 0.90) return data["run_skid_stop"] || data["combat_stance"];
+          else return data["run_recover_stance"] || data["combat_stance"];
+        }
         if (isTransitioning) {
           const p = transitionProgress;
           if (p < 0.18) return data["standing_sentinel"];
@@ -731,6 +778,30 @@
                 titleSpan.style.color = "#74b9ff";
               }
             }
+          } else if (isRunning) {
+            const pct = Math.round(runProgress * 100);
+            if (runProgress < 0.12) {
+              titleSpan.textContent = `🏃 Run 1: Sprint Initiation Lean (${pct}%)`;
+              titleSpan.style.color = "#2ed573";
+            } else if (runProgress < 0.28) {
+              titleSpan.textContent = `🏃 Run 2: Stride 1 — Right Foot Contact (${pct}%)`;
+              titleSpan.style.color = "#2ecc71";
+            } else if (runProgress < 0.44) {
+              titleSpan.textContent = `🏃 Run 3: Stride 2 — Left Knee Airborne Drive (${pct}%)`;
+              titleSpan.style.color = "#1abc9c";
+            } else if (runProgress < 0.60) {
+              titleSpan.textContent = `🏃 Run 4: Stride 3 — Left Foot Contact (${pct}%)`;
+              titleSpan.style.color = "#2ecc71";
+            } else if (runProgress < 0.76) {
+              titleSpan.textContent = `🏃 Run 5: Stride 4 — Right Knee Airborne Drive (${pct}%)`;
+              titleSpan.style.color = "#1abc9c";
+            } else if (runProgress < 0.90) {
+              titleSpan.textContent = `🛑 Run 6: Braking Skid & Stone Deceleration (${pct}%)`;
+              titleSpan.style.color = "#e67e22";
+            } else {
+              titleSpan.textContent = `🛡️ Run 7: Recovering to Active Stance (${pct}%)`;
+              titleSpan.style.color = "#74b9ff";
+            }
           } else if (isTransitioning) {
             if (targetStance === "combat") {
               const pct = Math.round(transitionProgress * 100);
@@ -742,10 +813,10 @@
               titleSpan.style.color = "#74b9ff";
             }
           } else if (currentStance === "combat") {
-            titleSpan.textContent = "Combat Stance (Ready) — [A] Light Attack | [S] Heavy Attack (2-Step)";
+            titleSpan.textContent = "Combat Stance (Ready) — [A] Light Attack | [S] Heavy Attack (2-Step) | [D] Sprint & Run";
             titleSpan.style.color = "#ff7675";
           } else {
-            titleSpan.textContent = "Rest Stance (Sentinel)";
+            titleSpan.textContent = "Rest Stance (Sentinel) — [D] Sprint & Run";
             titleSpan.style.color = "#2ecc71";
           }
         } else if (currentViewKey === "heavy_step1_windup") {
@@ -766,6 +837,18 @@
         } else if (currentViewKey === "heavy_step2_return") {
           titleSpan.textContent = "Mockup 6: Left Leg Step & Return (heavy_step2_return)";
           titleSpan.style.color = "#74b9ff";
+        } else if (currentViewKey.startsWith("run_")) {
+          const runNames = {
+            "run_trans_start": "Run 1: Sprint Initiation Lean",
+            "run_stride_1": "Run 2: Stride 1 (Right Foot Contact)",
+            "run_stride_2": "Run 3: Stride 2 (Left Knee Airborne Drive)",
+            "run_stride_3": "Run 4: Stride 3 (Left Foot Contact)",
+            "run_stride_4": "Run 5: Stride 4 (Right Knee Airborne Drive)",
+            "run_skid_stop": "Run 6: Braking Skid & Stone Deceleration",
+            "run_recover_stance": "Run 7: Returning to Active Attack Stance"
+          };
+          titleSpan.textContent = runNames[currentViewKey] || `Running Keyframe: ${currentViewKey}`;
+          titleSpan.style.color = "#2ed573";
         } else if (currentViewKey === "character_focus") {
           titleSpan.textContent = "Weary Vigil (Camp)";
           titleSpan.style.color = "#f1c40f";
@@ -807,6 +890,24 @@
         }
       }
 
+      const btnRun = document.getElementById("btnRun");
+      if (btnRun) {
+        if (isRunning) {
+          btnRun.className = "btn";
+          btnRun.style.background = "#2ed573";
+          btnRun.style.color = "#000";
+          btnRun.style.boxShadow = "0 0 16px rgba(46, 213, 115, 0.8)";
+          btnRun.innerHTML = "🏃 [D] Running...";
+        } else {
+          btnRun.className = "btn";
+          btnRun.style.background = "";
+          btnRun.style.color = "#2ed573";
+          btnRun.style.borderColor = "#2ed573";
+          btnRun.style.boxShadow = "";
+          btnRun.innerHTML = "🏃 [D] Sprint & Run";
+        }
+      }
+
       if (btnStance) {
         if (isTransitioning) {
           btnStance.innerHTML = targetStance === "combat" ? "⚔️ Drawing..." : "🛡️ Sheathing...";
@@ -820,8 +921,8 @@
         }
       }
 
-      if (btnRest) btnRest.classList.toggle("active", isHero && currentStance === "rest" && !isTransitioning && !isAttacking);
-      if (btnCombat) btnCombat.classList.toggle("active", isHero && currentStance === "combat" && !isTransitioning && !isAttacking);
+      if (btnRest) btnRest.classList.toggle("active", isHero && currentStance === "rest" && !isTransitioning && !isAttacking && !isRunning);
+      if (btnCombat) btnCombat.classList.toggle("active", isHero && currentStance === "combat" && !isTransitioning && !isAttacking && !isRunning);
       if (btnFocus) btnFocus.classList.toggle("active", currentViewKey === "character_focus");
       if (btnScene) btnScene.classList.toggle("active", currentViewKey === "scene");
 
@@ -832,14 +933,16 @@
           } else {
             hudDesc.textContent = "Light Attack Action: Quick Sweeping Cleave — Short Wind-Up -> Wide Horizontal Slash Arc -> Transition Back to Guard";
           }
+        } else if (isRunning) {
+          hudDesc.textContent = "Running Locomotion: Forward Torso Lean -> One-Handed Greatsword Carry Along Flank -> Flapping Crimson Mantle Physics -> Braking Skid -> Active Stance Recovery";
         } else if (isTransitioning) {
           hudDesc.textContent = "Stance Transition: Physically sweeping greatsword, transferring weight between feet, and flaring cape";
         } else if (isHero && currentStance === "combat") {
-          hudDesc.textContent = "Combat Stance (Z): [A] Light Attack | [X/S] Heavy Attack (2-Step Motion) | Inspect Mockups [5-8]";
+          hudDesc.textContent = "Combat Stance (Z): [A] Light Attack | [X/S] Heavy Attack (2-Step Motion) | [D] Sprint & Run | Inspect Mockups";
         } else if (isHero) {
-          hudDesc.textContent = "Rest Stance (Z): Inverted Pendulum Breathing Sway (1.2 rad/s) + Planted Greatsword Pivot | Press [Z] to Enter Combat Stance";
-        } else if (currentViewKey.startsWith("heavy_")) {
-          hudDesc.textContent = "Heavy Attack Keyframe Mockup Inspection: Frame details frozen for review. Press [1] for live Hero mode.";
+          hudDesc.textContent = "Rest Stance (Z): Inverted Pendulum Breathing Sway (1.2 rad/s) + Planted Greatsword Pivot | Press [Z] for Combat | [D] Sprint & Run";
+        } else if (currentViewKey.startsWith("heavy_") || currentViewKey.startsWith("run_")) {
+          hudDesc.textContent = "Keyframe Mockup Inspection: Frame details frozen for review. Press [1] for live Hero mode.";
         } else {
           hudDesc.textContent = "Overview Scene: High-Density Monospace Character Display";
         }
@@ -930,21 +1033,21 @@
           b_dy = 1.0;
           leg_dx = 8.0 * strike_f;
           arm_dx = 6.0 * strike_f;
-          c_dx = 12.0 * Math.sin(st * Math.PI);
+          c_dx = -4.0 * Math.sin(st * Math.PI);
         } else if (ap < 0.65) {
           // Impact hold / follow-through (Faster middle frame)
           b_dx = 2.0;
           b_dy = 1.0;
           leg_dx = 8.0;
           arm_dx = 6.0;
-          c_dx = 10.0;
+          c_dx = -4.0;
         } else if (ap < 0.83) {
           // Step 2 Unwind Front: Torso unwinds back facing viewer, legs switched (second to last)
           b_dx = 1.0;
           b_dy = 1.0;
           leg_dx = 4.0;
           arm_dx = 3.0;
-          c_dx = 3.0;
+          c_dx = -1.0;
         } else {
           // Step 2 Return: Left leg steps forward around, squaring to neutral
           const rt = (ap - 0.83) / 0.17;
@@ -953,7 +1056,7 @@
           b_dy = 1.0 * decay;
           leg_dx = 3.0 * decay;
           arm_dx = 2.0 * decay;
-          c_dx = 2.0 * decay;
+          c_dx = -1.0 * decay;
         }
 
         if (zone === "head_helm" || zone === "pauldrons" || zone === "torso_cuirass") {
@@ -1047,6 +1150,18 @@
           attackProgress = 1.0;
           isAttacking = false;
           attackSlashTrail = [];
+          updateStanceUI();
+        }
+        updateStanceUI();
+      }
+
+      // Step running animation state machine
+      if (isRunning) {
+        const runSpeed = (1.0 / runDuration) * animSpeed;
+        runProgress += dt * runSpeed;
+        if (runProgress >= 1.0) {
+          runProgress = 1.0;
+          isRunning = false;
           updateStanceUI();
         }
         updateStanceUI();
@@ -1344,6 +1459,8 @@
         triggerAttack('cleave');
       } else if (e.key === 'x' || e.key === 'X' || e.key === 's' || e.key === 'S') {
         triggerAttack('heavy');
+      } else if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') {
+        triggerRun();
       } else if (e.key === 'h' || e.key === 'H') {
         toggleAnatomy();
       } else if (e.key === 'b' || e.key === 'B') {

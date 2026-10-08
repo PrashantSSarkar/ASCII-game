@@ -493,82 +493,112 @@ def main():
                 
         r_dst["text"] = "".join(txt)
 
-    # Cape draped across back, trailing naturally to the left with the lunge
-    # Kept strictly within dorsal/back silhouette (x in [24, 58]) so the forward right arm and sword are completely clear!
-    for y in range(24, 98):
-        y_rel = (y - 24) / 74.0
-        # Left edge trails to the left behind the forward lunge
-        c_left = int(32 - 9.0 * math.sin(y_rel * math.pi * 0.75))
-        # Right edge stays cleanly at the torso flank (leaving x >= 59 completely unobstructed)
-        c_right = int(58 - 2.5 * math.sin(y_rel * math.pi * 0.9))
-        
-        # Bottom tattered hem taper
-        if y > 91:
-            c_left += int((y - 91) * 1.8)
-            c_right -= int((y - 91) * 1.5)
+    # Master function for rendering realistic swaying dorsal cape:
+    def render_dorsal_cape(matrix, is_followthrough=False):
+        for y in range(24, 99):
+            y_rel = (y - 24) / 74.0
+            if not is_followthrough:
+                # Frame 4: Snappy forward strike swing, cape billowing left
+                c_left = 28.0 - 20.0 * math.pow(y_rel, 0.65) - 4.5 * math.sin(y_rel * math.pi * 1.5)
+                c_right = 58.0 - 20.0 * math.pow(y_rel, 1.15) + 2.0 * math.sin(y_rel * math.pi)
+            else:
+                # Frame 5: Impact follow-through, inertia pushes cape slightly further left with wave ripple
+                c_left = 28.0 - 22.0 * math.pow(y_rel, 0.60) - 5.5 * math.sin(y_rel * math.pi * 1.6)
+                c_right = 58.0 - 23.0 * math.pow(y_rel, 1.10) + 2.5 * math.sin(y_rel * math.pi)
 
-        if c_left > c_right:
-            continue
-
-        for cx in range(c_left, c_right + 1):
-            if 28 <= y <= 38 and (cx_head - 1) <= cx <= (cx_head + 1):
+            cl = int(round(c_left))
+            cr = int(round(c_right))
+            if cl > cr:
                 continue
 
-            r_dst = m_step1_strike["rows"][y]
-            txt = list(r_dst["text"])
-            
-            wave = math.sin(cx * 0.38 + y * 0.28)
-            if wave > 0.6:
-                ch = "%"
-            elif wave > 0.2:
-                ch = "#"
-            elif wave > -0.2:
-                ch = "&"
-            elif wave > -0.6:
-                ch = "S"
-            else:
-                ch = "="
-                
-            fold_shading = 0.5 + 0.5 * math.sin(cx * 0.35 + y * 0.25)
-            r_col = int(145 * fold_shading + 65)
-            g_col = int(22 * fold_shading + 10)
-            b_col = int(26 * fold_shading + 12)
-            
-            txt[cx] = ch
-            r_dst["text"] = "".join(txt)
-            r_dst["fg"][cx] = [r_col, g_col, b_col]
-            r_dst["bg"][cx] = [int(r_col * 0.28), int(g_col * 0.28), int(b_col * 0.28)]
-            r_dst["anatomy"][cx] = "cape_mantle"
+            for x in range(cl, cr + 1):
+                # Tattered hem teeth check for y > 88
+                if y > 88:
+                    hem_limit = 93 + int(round(3.5 * math.sin(x * 0.9) + 2.0 * math.cos(x * 1.4)))
+                    if y > hem_limit:
+                        continue
+
+                u = (x - cl) / max(1, cr - cl)
+                phase = u * 4.5 * 2.0 * math.pi + y * 0.22 + (1.2 if is_followthrough else 0.0)
+                elev = 0.75 * math.sin(phase) + 0.25 * math.cos(u * 9.0 * 2.0 * math.pi + y * 0.35)
+
+                if x == cl:
+                    ch = '\\' if y_rel < 0.6 else '/'
+                elif x == cr:
+                    ch = '/' if y_rel < 0.5 else '|'
+                elif elev > 0.82 and (x + y) % 4 == 0:
+                    ch = 's'
+                elif elev < -0.70:
+                    ch = '|' if x % 2 == 0 else ('/' if x < (cl + cr) // 2 else '\\')
+                elif elev < -0.45 and y % 2 == 0:
+                    ch = '-'
+                else:
+                    ch = '%'
+
+                # Authentic velvet color palette matching combat_stance
+                fold_lighting = 0.5 + 0.5 * elev
+                vert_grad = 1.0 - 0.12 * y_rel
+                r_col = int((98 + 82 * fold_lighting) * vert_grad)
+                r_col = max(95, min(205, r_col))
+                g_col = int(r_col * 0.20 + 2.0 * math.sin(x * 0.5))
+                b_col = int(r_col * 0.18 + 1.5 * math.cos(y * 0.5))
+                g_col = max(15, min(45, g_col))
+                b_col = max(14, min(45, b_col))
+
+                bg_col = [int(r_col * 0.17), int(g_col * 0.17), int(b_col * 0.17)]
+
+                r_dst = matrix["rows"][y]
+                txt = list(r_dst["text"])
+                txt[x] = ch
+                r_dst["text"] = "".join(txt)
+                r_dst["fg"][x] = [r_col, g_col, b_col]
+                r_dst["bg"][x] = bg_col
+                r_dst["anatomy"][x] = "cape_mantle"
+
+            # Trailing frayed shreds billowing into the left space
+            if (y * 7) % 5 <= 2 and cl > 4:
+                shred_x = cl - 2
+                r_dst = matrix["rows"][y]
+                txt = list(r_dst["text"])
+                txt[shred_x] = '%'
+                r_dst["text"] = "".join(txt)
+                r_dst["fg"][shred_x] = [105, 21, 19]
+                r_dst["bg"][shred_x] = [18, 4, 3]
+                r_dst["anatomy"][shred_x] = "cape_mantle"
+                if (y * 3) % 7 == 0 and cl > 6:
+                    shred_x2 = cl - 4
+                    txt = list(r_dst["text"])
+                    txt[shred_x2] = 's' if (y % 2 == 0) else '%'
+                    r_dst["text"] = "".join(txt)
+                    r_dst["fg"][shred_x2] = [115, 23, 21]
+                    r_dst["bg"][shred_x2] = [19, 4, 4]
+                    r_dst["anatomy"][shred_x2] = "cape_mantle"
+
+    # Save base body for follow-through before adding cape & weapon
+    m_back_turned_base = copy.deepcopy(m_step1_strike)
+
+    # 4. Render Frame 4 Realistic Swaying Cape
+    render_dorsal_cape(m_step1_strike, is_followthrough=False)
 
     # Right arm driving forward into the strike from the right shoulder:
     draw_line(m_step1_strike, 56, 38, 64, 42, "@", [175, 185, 195], [32, 35, 42], "arms_gauntlets", width=1, occlude_zones=("cape_mantle",))
     draw_line(m_step1_strike, 64, 42, 66, 44, "@", [190, 200, 210], [35, 38, 46], "arms_gauntlets", width=1, occlude_zones=("cape_mantle",))
 
-    # Extended Forward Greatsword Strike:
-    # Hilt at (66, 44), blade driving straight forward across the screen to maximum reach x=109!
-    # Any part occluded by the dorsal cape or body is strictly clipped so the sword NEVER sticks through the cape.
+    # Extended Forward Greatsword Strike (x=109)
     render_greatsword(m_step1_strike, 66, 44, 109, 44, add_wave=True, blade_glow=True, occlude_zones=("cape_mantle", "torso_cuirass", "head_helm"))
 
 
     # =========================================================================
-    # MOCKUP FRAME 3: heavy_step1_followthrough
+    # MOCKUP FRAME 4: heavy_step1_followthrough
     # Action: The heavy strike has fully connected. Both arms are fully extended
     #         forward-downward, the weight of the massive blade pulling forward.
     #         Back is still turned to the viewer, right leg deeply planted forward.
-    #         Cape stays on back, sword extends forward-downward to x=109.
+    #         Cape sways further left with follow-through wave, sword extends to (109, 53).
     # =========================================================================
-    m_step1_followthrough = copy.deepcopy(m_step1_strike)
-    for y in range(h):
-        r = m_step1_followthrough["rows"][y]
-        txt = list(r["text"])
-        for x in range(w):
-            if r["anatomy"][x] == "weapon_sword":
-                plate = bg_plate[y][x]
-                txt[x] = plate["text"]
-                r["fg"][x] = plate["fg"][:]
-                r["bg"][x] = plate["bg"][:]
-                r["anatomy"][x] = plate["anatomy"]
-        r["text"] = "".join(txt)
+    m_step1_followthrough = copy.deepcopy(m_back_turned_base)
+
+    # 4. Render Frame 5 Realistic Follow-Through Swaying Cape
+    render_dorsal_cape(m_step1_followthrough, is_followthrough=True)
 
     # Follow-through arms extended forward-downward:
     draw_line(m_step1_followthrough, 58, 42, 66, 46, "@", [170, 180, 190], [30, 34, 40], "arms_gauntlets", width=1, occlude_zones=("cape_mantle",))
