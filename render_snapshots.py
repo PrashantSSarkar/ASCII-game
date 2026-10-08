@@ -26,9 +26,9 @@ total_h = h * char_h
 frames_to_render = {
     "knight_rest_stance_8px": data["standing_sentinel"],
     "knight_combat_stance_8px": data["combat_stance"],
-    "knight_trans_lift_8px": data["trans_lift"],
-    "knight_trans_sweep_8px": data["trans_sweep"],
-    "knight_trans_ready_8px": data["trans_ready"],
+    "knight_attack_windup_8px": data["attack_windup"],
+    "knight_attack_slash_8px": data["attack_slash"],
+    "knight_attack_recovery_8px": data["attack_recovery"],
 }
 
 artifact_dir = r"C:\Users\Asus\.gemini\antigravity-ide\brain\a4e368e9-0da6-4f0c-93ee-51a8be7a445d"
